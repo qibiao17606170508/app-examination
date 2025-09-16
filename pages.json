@@ -1,0 +1,119 @@
+{
+  "pages": [
+    {
+      "path": "pages/registration/index",
+      "style": {
+        "navigationBarTitleText": "智启AI",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFF",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "智启AI",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFF",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/register/register",
+      "style": {
+        "navigationBarTitleText": "智启AI",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFF",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/forgot-password/forgot-password",
+      "style": {
+        "navigationBarTitleText": "智启AI",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFF",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/analysis/index",
+      "style": {
+        "navigationBarTitleText": "智启AI",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFF",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/practice/index",
+      "style": {
+        "navigationBarTitleText": "智启AI",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFF",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/user/index",
+      "style": {
+        "navigationBarTitleText": "智启AI",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFF",
+        "enablePullDownRefresh": true
+      }
+    }
+  ],
+  "permission": {
+    "scope.bluetooth": {
+      "desc": "获取蓝牙用于硬件链接"
+    },
+    "scope.camera": {
+      "desc": "获取摄像头用于拍照"
+    }
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "智启AI",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#FFFFFF"
+  },
+  "tabBar": {
+    "color": "#B6C3D2",
+    "selectedColor": "#1499FF",
+    "borderStyle": "black",
+    "backgroundColor": "#fff",
+    "list": [
+      {
+        "pagePath": "pages/registration/index",
+        "iconPath": "static/menu_imgs/homeIcon-1.png",
+        "selectedIconPath": "static/menu_imgs/homeIcon-active-1.png",
+        "text": "登记错题"
+      },
+      {
+        "pagePath": "pages/analysis/index",
+        "iconPath": "static/menu_imgs/shop-1.png",
+        "selectedIconPath": "static/menu_imgs/shop-active.png",
+        "text": "错题分析"
+      },
+      {
+        "pagePath": "pages/practice/index",
+        "iconPath": "static/menu_imgs/service.png",
+        "selectedIconPath": "static/menu_imgs/service-active.png",
+        "text": "习题练习"
+      },
+      {
+        "pagePath": "pages/user/index",
+        "iconPath": "static/menu_imgs/user.png",
+        "selectedIconPath": "static/menu_imgs/user-active.png",
+        "text": "个人中心"
+      }
+    ]
+  },
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "gui-(.*)": "@/Grace6/components/gui-$1.vue"
+    }
+  }
+}
