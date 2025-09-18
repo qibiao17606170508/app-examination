@@ -3,10 +3,9 @@
     {
       "path": "pages/registration/index",
       "style": {
-        "navigationBarTitleText": "智启AI",
-        "navigationStyle": "custom",
+        "navigationBarTitleText": "登记错题",
         "backgroundColor": "#FFF",
-        "enablePullDownRefresh": true
+        "enablePullDownRefresh": false
       }
     },
     {
@@ -15,7 +14,7 @@
         "navigationBarTitleText": "智启AI",
         "navigationStyle": "custom",
         "backgroundColor": "#FFF",
-        "enablePullDownRefresh": true
+        "enablePullDownRefresh": false
       }
     },
     {
@@ -24,7 +23,7 @@
         "navigationBarTitleText": "智启AI",
         "navigationStyle": "custom",
         "backgroundColor": "#FFF",
-        "enablePullDownRefresh": true
+        "enablePullDownRefresh": false
       }
     },
     {
@@ -33,7 +32,7 @@
         "navigationBarTitleText": "智启AI",
         "navigationStyle": "custom",
         "backgroundColor": "#FFF",
-        "enablePullDownRefresh": true
+        "enablePullDownRefresh": false
       }
     },
     {
@@ -42,7 +41,7 @@
         "navigationBarTitleText": "智启AI",
         "navigationStyle": "custom",
         "backgroundColor": "#FFF",
-        "enablePullDownRefresh": true
+        "enablePullDownRefresh": false
       }
     },
     {
@@ -51,7 +50,7 @@
         "navigationBarTitleText": "智启AI",
         "navigationStyle": "custom",
         "backgroundColor": "#FFF",
-        "enablePullDownRefresh": true
+        "enablePullDownRefresh": false
       }
     },
     {
@@ -60,7 +59,7 @@
         "navigationBarTitleText": "智启AI",
         "navigationStyle": "custom",
         "backgroundColor": "#FFF",
-        "enablePullDownRefresh": true
+        "enablePullDownRefresh": false
       }
     }
   ],
@@ -80,7 +79,7 @@
   },
   "tabBar": {
     "color": "#B6C3D2",
-    "selectedColor": "#1499FF",
+    "selectedColor": "#4fa8bb",
     "borderStyle": "black",
     "backgroundColor": "#fff",
     "list": [

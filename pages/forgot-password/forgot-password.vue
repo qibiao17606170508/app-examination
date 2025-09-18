@@ -6,8 +6,6 @@
     </template>
     <template v-slot:gBody>
       <view class="forgot-container">
-        <!-- 返回按钮 -->
-        <image class="top-bg" src="/static/bg.png" />
         <!-- 安全图标 -->
         <view class="security-icon">
           <image class="shield-icon" src="/static/4.png" />
@@ -225,7 +223,14 @@ export default {
   },
 };
 </script>
-
+<style>
+page {
+  background-image: linear-gradient(180deg, #3bb2b8 0%, #fff 35%) !important;
+  height: 100vh;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+</style>
 <style lang="scss">
 .top-bg {
   position: absolute;
@@ -272,9 +277,9 @@ export default {
   margin-bottom: 60rpx;
 
   .forgot-title {
-    font-size: 48rpx;
+    font-size: 36rpx;
     font-weight: bold;
-    color: #333;
+    color: #1d2129;
     display: block;
     margin-bottom: 16rpx;
   }

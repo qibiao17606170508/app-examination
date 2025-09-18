@@ -35,10 +35,10 @@ const reqInterceptor = async (options) => {
   // Loading处理
   options.hideLoading = options.hideLoading !== undefined ? options.hideLoading : false;
   if (!options.hideLoading) {
-    uni.showLoading({
-      title: "加载中...",
-      mask: true,
-    });
+    // uni.showLoading({
+    //   title: "加载中...",
+    //   mask: true,
+    // });
   }
 
   return options;

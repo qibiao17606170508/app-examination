@@ -1,13 +1,19 @@
 <template>
-  <gui-page>
+  <gui-page :customHeader="true">
+    <template v-slot:gHeader>
+      <!-- 返回按钮 -->
+      <gui-header-leading :backButtonClass="['gui-color-black']" :home="false"></gui-header-leading>
+    </template>
     <template v-slot:gBody>
       <view class="register-container">
-        <view class="register-card">
+        <!-- 安全图标 -->
+        <view class="security-icon">
+          <image class="shield-icon" src="/static/4.png" />
+        </view>
+        <view>
           <view class="register-header">
-            <text class="register-title">学生注册</text>
-            <text class="register-subtitle">创建您的学生账号</text>
+            <text class="register-title">注册账号</text>
           </view>
-
           <view class="register-form">
             <!-- 账户信息 -->
             <view class="form-section">
@@ -16,7 +22,7 @@
               <!-- 用户名 -->
               <view class="form-item">
                 <view class="input-wrapper">
-                  <input class="input-field" v-model="form.username" placeholder="请输入用户名" :maxlength="20" />
+                  <input class="input-field" placeholder-style="color: red" v-model="form.username" placeholder="请输入用户名" :maxlength="20" />
                 </view>
               </view>
 
@@ -48,14 +54,14 @@
               <!-- 真实姓名 -->
               <view class="form-item">
                 <view class="input-wrapper">
-                  <input class="input-field" v-model="form.realName" placeholder="请输入姓名" :maxlength="10" />
+                  <input class="input-field" v-model="form.nickname" placeholder="请输入姓名" :maxlength="10" />
                 </view>
               </view>
 
               <!-- 学号 -->
               <view class="form-item">
                 <view class="input-wrapper">
-                  <input class="input-field" v-model="form.studentId" placeholder="请输入学号" :maxlength="20" />
+                  <input class="input-field" v-model="form.student_number" placeholder="请输入学号" :maxlength="20" />
                 </view>
               </view>
 
@@ -65,7 +71,7 @@
                   <text class="picker-text" :class="{ placeholder: !selectedGender }">
                     {{ selectedGender ? selectedGender.name : "请选择性别" }}
                   </text>
-                  <text class="arrow-icon">▼</text>
+                  <text class="arrow-icon gui-icons">&#xe661;</text>
                 </view>
               </view>
 
@@ -75,7 +81,7 @@
                   <text class="picker-text" :class="{ placeholder: !selectedSchool }">
                     {{ selectedSchool ? selectedSchool.name : "请选择学校" }}
                   </text>
-                  <text class="arrow-icon">▼</text>
+                  <text class="arrow-icon gui-icons">&#xe661;</text>
                 </view>
               </view>
 
@@ -85,7 +91,7 @@
                   <text class="picker-text" :class="{ placeholder: !selectedClass }">
                     {{ selectedClass ? selectedClass.name : "请选择班级" }}
                   </text>
-                  <text class="arrow-icon">▼</text>
+                  <text class="arrow-icon gui-icons">&#xe661;</text>
                 </view>
               </view>
             </view>
@@ -106,10 +112,10 @@
                 <view class="sms-wrapper">
                   <view class="input-wrapper sms-input">
                     <input class="input-field" v-model="form.smsCode" placeholder="请输入验证码" type="number" :maxlength="6" />
+                    <span class="sms-btn" :class="{ disabled: smsCountdown > 0 }" @click="sendSmsCode" :disabled="smsCountdown > 0">
+                      {{ smsCountdown > 0 ? `${smsCountdown}s` : "获取验证码" }}
+                    </span>
                   </view>
-                  <button class="sms-btn" :class="{ disabled: smsCountdown > 0 }" @click="sendSmsCode" :disabled="smsCountdown > 0">
-                    {{ smsCountdown > 0 ? `${smsCountdown}s` : "获取验证码" }}
-                  </button>
                 </view>
               </view>
             </view>
@@ -176,7 +182,6 @@
 </template>
 
 <script>
-import { getCaptchaApi } from "@/apis/login.js";
 import { registerApi, sendSmsCodeApi } from "@/apis/register.js";
 import { getSchoolListApi, getClassListApi } from "@/apis/common.js";
 
@@ -196,26 +201,26 @@ export default {
       schoolList: [],
       classList: [],
       genderList: [
-        { name: "男", value: "male" },
-        { name: "女", value: "female" },
+        { name: "男", value: 1 },
+        { name: "女", value: 2 },
       ],
       selectedSchool: null,
       selectedClass: null,
       selectedGender: null,
       form: {
         username: "",
-        realName: "",
-        studentId: "",
+        nickname: "", // 修改为nickname匹配后端
+        student_number: "", // 修改为student_number匹配后端
         phone: "",
         smsCode: "",
         password: "",
         confirmPassword: "",
-        captcha: "",
-        captcha_id: "",
-        schoolId: "",
-        classId: "",
-        gender: "",
+        school_id: "", // 修改为school_id匹配后端
+        class_id: "", // 修改为class_id匹配后端
+        sex: 0, // 修改为sex，使用数字格式
         type: "student",
+        captcha: "", // 短信验证码作为captcha
+        captcha_id: "", // 短信验证码ID
       },
     };
   },
@@ -231,29 +236,12 @@ export default {
   },
 
   methods: {
-    // 获取验证码
-    async getCaptcha() {
-      try {
-        const res = await getCaptchaApi();
-
-        if (res.status === "success") {
-          this.captchaImage = res.data.image;
-          this.form.captcha_id = res.data.key;
-          this.form.captcha = "";
-        }
-      } catch (error) {
-        console.error("获取验证码失败:", error);
-      }
-    },
-
     // 获取学校列表
     async getSchoolList() {
       try {
         const res = await getSchoolListApi();
-
-        if (res.status === "success") {
-          this.schoolList = res.data || [];
-        }
+        this.schoolList = res.data.list;
+        console.log(this.schoolList);
       } catch (error) {
         console.error("获取学校列表失败:", error);
       }
@@ -262,11 +250,9 @@ export default {
     // 获取班级列表
     async getClassList(schoolId) {
       try {
-        const res = await getClassListApi({ schoolId });
+        const res = await getClassListApi({ school_id: schoolId });
 
-        if (res.status === "success") {
-          this.classList = res.data || [];
-        }
+        this.classList = res.data.list || [];
       } catch (error) {
         console.error("获取班级列表失败:", error);
       }
@@ -275,9 +261,9 @@ export default {
     // 选择学校
     selectSchool(school) {
       this.selectedSchool = school;
-      this.form.schoolId = school.id;
+      this.form.school_id = school.id;
       this.selectedClass = null;
-      this.form.classId = "";
+      this.form.class_id = "";
       this.classList = [];
       this.showSchoolPicker = false;
       this.getClassList(school.id);
@@ -286,14 +272,14 @@ export default {
     // 选择班级
     selectClass(classItem) {
       this.selectedClass = classItem;
-      this.form.classId = classItem.id;
+      this.form.class_id = classItem.id;
       this.showClassPicker = false;
     },
 
     // 选择性别
     selectGender(gender) {
       this.selectedGender = gender;
-      this.form.gender = gender.value;
+      this.form.sex = gender.value;
       this.showGenderPicker = false;
     },
 
@@ -321,7 +307,8 @@ export default {
           type: "register",
         });
 
-        if (res.status === "success") {
+        if (res.code === 0) {
+          this.form.captcha_id = res.data.key || res.data.captcha_id; // 保存验证码ID
           uni.showToast({
             title: "验证码已发送",
             icon: "success",
@@ -356,15 +343,25 @@ export default {
 
     // 表单验证
     validateForm() {
-      const { username, realName, phone, smsCode, password, confirmPassword, captcha, schoolId, classId } = this.form;
+      const { username, nickname, phone, smsCode, password, confirmPassword, school_id, class_id } = this.form;
 
       if (!username.trim()) {
         uni.showToast({ title: "请输入用户名", icon: "none" });
         return false;
       }
 
-      if (!realName.trim()) {
-        uni.showToast({ title: "请输入真实姓名", icon: "none" });
+      if (!nickname.trim()) {
+        uni.showToast({ title: "请输入姓名", icon: "none" });
+        return false;
+      }
+
+      if (!this.form.student_number.trim()) {
+        uni.showToast({ title: "请输入学号", icon: "none" });
+        return false;
+      }
+
+      if (!this.form.sex) {
+        uni.showToast({ title: "请选择性别", icon: "none" });
         return false;
       }
 
@@ -383,12 +380,12 @@ export default {
         return false;
       }
 
-      if (!schoolId) {
+      if (!school_id) {
         uni.showToast({ title: "请选择学校", icon: "none" });
         return false;
       }
 
-      if (!classId) {
+      if (!class_id) {
         uni.showToast({ title: "请选择班级", icon: "none" });
         return false;
       }
@@ -408,11 +405,6 @@ export default {
         return false;
       }
 
-      if (!captcha.trim()) {
-        uni.showToast({ title: "请输入验证码", icon: "none" });
-        return false;
-      }
-
       return true;
     },
 
@@ -425,9 +417,17 @@ export default {
       this.loading = true;
 
       try {
-        const { confirmPassword, ...submitData } = this.form;
+        const { confirmPassword, smsCode, ...submitData } = this.form;
 
-        const res = await registerApi(submitData);
+        // 构建提交数据，确保字段名匹配后端
+        const submitForm = {
+          ...submitData,
+          captcha: smsCode, // 短信验证码作为captcha
+          captcha_id: this.form.captcha_id, // 短信验证码ID
+          password_affirm: confirmPassword, // 确认密码
+        };
+
+        const res = await registerApi(submitForm);
 
         if (res.status === "success") {
           uni.showToast({
@@ -453,12 +453,29 @@ export default {
   },
 };
 </script>
-
+<style>
+page {
+  background-image: linear-gradient(180deg, #3bb2b8 0%, #fff 35%) !important;
+  height: 100vh;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+</style>
 <style lang="scss">
 .register-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #42e695 0%, #3bb2b8 100%);
   padding: 40rpx 20rpx;
+}
+.security-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20rpx;
+  margin-top: 200rpx;
+  .shield-icon {
+    width: 200rpx;
+    height: 200rpx;
+    object-fit: contain;
+  }
 }
 
 .register-card {
@@ -474,9 +491,9 @@ export default {
   margin-bottom: 60rpx;
 
   .register-title {
-    font-size: 48rpx;
+    font-size: 36rpx;
     font-weight: bold;
-    color: #333;
+    color: #1d2129;
     display: block;
     margin-bottom: 16rpx;
   }
@@ -493,11 +510,11 @@ export default {
     margin-bottom: 60rpx;
 
     .section-title {
-      font-size: 28rpx;
-      color: #3bb2b8;
+      font-size: 32rpx;
+      color: #4e5969;
       font-weight: bold;
       margin-bottom: 30rpx;
-      padding-left: 8rpx;
+      padding-left: 14rpx;
       border-left: 6rpx solid #3bb2b8;
     }
   }
@@ -538,7 +555,7 @@ export default {
     outline: none;
 
     &::placeholder {
-      color: #ccc;
+      color: #f8f8f8 !important;
     }
   }
 
@@ -570,7 +587,7 @@ export default {
     color: #333;
 
     &.placeholder {
-      color: #ccc;
+      color: #888;
     }
   }
 
@@ -590,16 +607,16 @@ export default {
   }
 
   .sms-btn {
-    width: 200rpx;
+    width: 180rpx;
     height: 96rpx;
-    background: #3bb2b8;
-    color: #fff;
+    line-height: 96rpx;
+    color: #3bb2b8;
     border: none;
     border-radius: 16rpx;
     font-size: 28rpx;
-
+    text-align: right;
     &.disabled {
-      background: #ccc;
+      color: #ccc;
       cursor: not-allowed;
     }
   }

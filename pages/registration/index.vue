@@ -22,7 +22,7 @@ export default {
 </script>
 <style>
 page {
-  background: #fff;
+  background: #f5f5f5;
 }
 </style>
 <style scoped lang="scss"></style>
