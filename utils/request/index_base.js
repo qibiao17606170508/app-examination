@@ -7,7 +7,7 @@ const baseUrl = process.env.NODE_ENV === "development" ? configApi.apiDev : conf
 
 const config = {
   baseUrl: `${baseUrl}/`,
-  timeout: 2000,
+  timeout: 10000, // 增加超时时间到10秒
 };
 
 export let base = baseUrl;
@@ -15,22 +15,43 @@ export let base = baseUrl;
 const reqInterceptor = async (options) => {
   // 参考PC端request.ts的请求拦截器逻辑
 
-  // 设置默认请求头
-  options.header = {
-    "content-type": "application/json",
-    ...options.header,
-  };
+  // 设置默认请求头 - 根据平台和请求类型设置不同的Content-Type
+  const platform = uni.getSystemInfoSync().platform;
+  const isLoginRequest = options.url.includes("login");
+  const isCaptchaRequest = options.url.includes("captcha");
 
-  // Token处理 - 参考PC端逻辑，不包含login接口时添加token
+  // APP端特殊处理 - 所有接口都需要特殊处理
+  if (platform === "ios" || platform === "android") {
+    // APP端统一使用表单格式传参
+    options.header = {
+      "content-type": "application/x-www-form-urlencoded",
+      "User-Agent": "ExamApp/1.0.0",
+      Accept: "application/json, text/plain, */*",
+      "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+      ...options.header,
+    };
+  } else {
+    // 小程序端保持原有逻辑
+    options.header = {
+      "content-type": isLoginRequest ? "application/x-www-form-urlencoded" : "application/json",
+      ...options.header,
+    };
+  }
+
+  // Token处理 - 参考PC端逻辑，不包含login和captcha接口时添加token
   const token = uni.getStorageSync("token");
-  if (!options.url.includes("login") && token) {
+  if (!options.url.includes("login") && !options.url.includes("captcha") && token) {
     // 使用Bearer Token格式，与PC端保持一致
     options.header["Authorization"] = `Bearer ${token}`;
   }
 
   // 语言设置 (如果需要国际化)
   const lang = uni.getStorageSync("lang") || "zh";
-  options.header["Accept-Language"] = lang === "en" ? "en-US" : "zh-CN";
+  if (!options.header["Accept-Language"]) {
+    options.header["Accept-Language"] = lang === "en" ? "en-US" : "zh-CN";
+  }
 
   // Loading处理
   options.hideLoading = options.hideLoading !== undefined ? options.hideLoading : false;
@@ -39,6 +60,17 @@ const reqInterceptor = async (options) => {
     //   title: "加载中...",
     //   mask: true,
     // });
+  }
+
+  // 调试日志
+  if (process.env.NODE_ENV === "development") {
+    console.log(`[REQUEST] 请求配置:`, {
+      url: options.url,
+      method: options.method,
+      header: options.header,
+      data: options.data,
+      platform: platform,
+    });
   }
 
   return options;

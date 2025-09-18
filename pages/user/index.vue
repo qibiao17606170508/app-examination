@@ -1,58 +1,75 @@
 <template>
-  <gui-page :apiLoadingStatus="apiLoadingStatus" :loadmore="true" @loadmorefun="getdata" ref="guipage" :customHeader="true">
+  <gui-page :apiLoadingStatus="apiLoadingStatus" :loadmore="true" @loadmorefun="loadMorePracticeHistory" ref="guipage" :customHeader="true">
     <template v-slot:gHeader>
-      <view style="height: 44px"></view>
-      <view style="height: 44px" class="gui-flex gui-nowrap gui-rows gui-align-items-center gui-justify-content-between gui-space-between header-container">
+      <view style="height: 44px; padding-top: 20rpx; padding-bottom: 20rpx" class="gui-flex gui-nowrap gui-rows gui-align-items-center gui-justify-content-between gui-space-between header-container">
         <!-- 欢迎语 -->
         <view class="welcome-section">
           <text class="welcome-text">欢迎您</text>
-          <text class="username-text">{{ userInfo.nickname || userInfo.username || "张三同学" }}</text>
+          <text class="username-text">{{ userInfo.nickname || userInfo.username || "..." }}</text>
         </view>
 
         <!-- 科目选择器 -->
         <view class="language-section" @click="showLanguageSelector">
-          <text class="language-text">{{ currentSubject ? currentSubject.name : "语文" }}</text>
+          <text class="language-text">{{ currentSubject ? currentSubject.name : "未选择" }}</text>
           <view class="language-dropdown">
-            <text class="dropdown-arrow grace-iconfont">&#xe608;</text>
+            <text class="dropdown-arrow grace-iconfont">&#xe603;</text>
           </view>
         </view>
       </view>
     </template>
 
-    <!-- 科目选择弹窗 -->
-    <gui-popup ref="subjectPopup" @close="closeSubjectPopup" position="bottom">
-      <view class="subject-popup-content">
-        <view class="subject-popup-header">
-          <text class="subject-popup-title">选择科目</text>
-          <view class="subject-popup-close" @click="closeSubjectPopup">
-            <text>✕</text>
+    <template v-slot:gBody>
+      <!-- 练习历史列表 -->
+      <view class="practice-history-container">
+        <view v-for="(item, index) in practiceHistoryList" :key="item.id || index" class="practice-card">
+          <!-- 卡片头部 -->
+          <view class="card-header">
+            <view class="card-title-section">
+              <text class="card-title">{{ item.knowledge_name }}</text>
+              <text class="card-difficulty">难度: {{ item.difficulty }}</text>
+            </view>
+            <text class="card-date">{{ formatDate(item.time) }}</text>
           </view>
-        </view>
-        <view class="subject-list">
-          <view v-for="(item, index) in subjectList" :key="item.id || index" class="subject-item" :class="{ active: currentSubject && currentSubject.id === item.id }" @click="selectSubject(item)">
-            <text class="subject-name">{{ item.name }}</text>
-            <view v-if="currentSubject && currentSubject.id === item.id" class="subject-check">✓</view>
+
+          <!-- 题目内容 -->
+          <view class="card-question">
+            <view class="question-text" v-html="item.title_content"></view>
+          </view>
+
+          <!-- 底部状态 -->
+          <view class="card-footer">
+            <text class="status-text" :class="item.is_correct == 1 ? 'correct' : 'incorrect'">
+              {{ item.is_correct == 1 ? "正确" : "错误" }}
+            </text>
           </view>
         </view>
       </view>
-    </gui-popup>
-    <template v-slot:gBody>
-      <text v-for="(item, idx) in demoData" :key="idx" class="demo gui-block gui-bg-white gui-dark-bg-level-3 gui-primary-text gui-text-center gui-text-small">{{ item }}</text>
+
+      <!-- 科目选择弹窗 -->
+      <gui-popup ref="subjectPopup" @close="onPopupClose" position="bottom">
+        <view class="subject-popup-content">
+          <view class="subject-popup-header">
+            <text class="subject-popup-title">选择科目</text>
+            <view class="subject-popup-close" @click="closeSubjectPopup">
+              <text>✕</text>
+            </view>
+          </view>
+          <scroll-view class="subject-list" scroll-y="true" :show-scrollbar="false">
+            <view v-for="(item, index) in subjectList" :key="item.id || index" class="subject-item" :class="{ active: currentSubject && currentSubject.id === item.id }" @click="selectSubject(item)">
+              <text class="subject-name">{{ item.name }}</text>
+              <view v-if="currentSubject && currentSubject.id === item.id" class="subject-check">✓</view>
+            </view>
+          </scroll-view>
+        </view>
+      </gui-popup>
     </template>
   </gui-page>
 </template>
 <script>
-// 模拟数据
-var data = [1, 2, 3, 4, 5, 6, 7, 8];
-import graceJS from "@/Grace6/js/grace.js";
-import { getSubjectListApi } from "@/apis/common.js";
-// 模拟页码
-var page = 1;
+import { getSubjectListApi, getUserInfoApi, getPracticeLogApi } from "@/apis/common.js";
 export default {
   data() {
     return {
-      demoData: [],
-      pageLoading: true,
       // 用于记录是否有 api 请求正在执行
       apiLoadingStatus: false,
       // 用户信息
@@ -63,54 +80,30 @@ export default {
       // 科目相关数据
       subjectList: [],
       currentSubject: null,
+      // 练习历史数据
+      practiceHistoryList: [],
+      practicePage: 1,
+      practicePageSize: 10,
+      hasMorePracticeData: true,
     };
   },
-  onLoad: function () {
-    // 页码加载时第一次加载数据
-    page = 1;
-    this.demoData = [];
-    this.getdata();
+  onLoad: async function () {
     // 初始化用户信息和科目数据
-    this.initUserInfo();
-    this.getSubjectList();
+    await this.initUserInfo();
+    await this.getSubjectList();
+    if (uni.getStorageSync("subject")) {
+      await this.getPracticeHistory();
+    }
   },
   methods: {
-    getdata: function () {
-      this.apiLoadingStatus = true;
-      console.log("加载函数运行，页码 : " + page);
-      // 模拟 api 请求刷新数据
-      setTimeout(() => {
-        // 对演示数据随机刷新模拟数据刷新
-        var demoArr = graceJS.arrayShuffle(data);
-        if (page >= 2) {
-          this.demoData = this.demoData.concat(demoArr);
-          // 加载完成后停止加载动画
-          this.$refs.guipage.stopLoadmore();
-          // 假定第3页加载了全部数据，通知组件不再加载更多
-          // 实际开发由接口返回值来决定
-          if (page >= 3) {
-            this.$refs.guipage.nomore();
-          }
-        }
-        // 第一页数据
-        else {
-          this.demoData = demoArr;
-          this.pageLoading = false;
-          // 加载完成后停止加载动画
-          this.$refs.guipage.stopLoadmore();
-        }
-        page++;
-        this.apiLoadingStatus = false;
-      }, 1000);
-    },
-
     // 初始化用户信息
-    initUserInfo() {
+    async initUserInfo() {
       // 从本地存储或全局状态获取用户信息
       try {
-        const userInfo = uni.getStorageSync("userInfo");
-        if (userInfo) {
-          this.userInfo = userInfo;
+        const userInfo = await getUserInfoApi();
+        if (userInfo.code === 0) {
+          this.userInfo = userInfo.data;
+          uni.setStorageSync("userInfo", userInfo.data);
         }
       } catch (e) {
         console.log("获取用户信息失败:", e);
@@ -125,24 +118,16 @@ export default {
         if (res.code === 0) {
           this.subjectList = res.data.list;
           // 设置默认选中第一个科目
-          if (this.subjectList.length > 0 && !this.currentSubject) {
-            this.currentSubject = this.subjectList[0];
+          if (this.subjectList.length > 0 && !uni.getStorageSync("subject")) {
+            this.$refs.subjectPopup.open();
+          } else {
+            this.currentSubject = uni.getStorageSync("subject");
           }
         }
       } catch (error) {
         console.error("获取科目列表失败:", error);
         // 如果API失败，使用模拟数据
-        this.subjectList = [
-          { id: 1, name: "语文" },
-          { id: 2, name: "数学" },
-          { id: 3, name: "英语" },
-          { id: 4, name: "物理" },
-          { id: 5, name: "化学" },
-          { id: 6, name: "生物" },
-          { id: 7, name: "历史" },
-          { id: 8, name: "地理" },
-          { id: 9, name: "政治" },
-        ];
+        this.subjectList = [];
         // 设置默认选中第一个科目
         if (this.subjectList.length > 0 && !this.currentSubject) {
           this.currentSubject = this.subjectList[0];
@@ -167,32 +152,162 @@ export default {
       }
     },
 
-    // 关闭科目选择弹窗
+    // 关闭科目选择弹窗（点击关闭按钮时调用）
     closeSubjectPopup() {
-      console.log("关闭弹窗");
+      console.log("点击关闭按钮");
       if (this.$refs.subjectPopup) {
         this.$refs.subjectPopup.close();
       }
     },
 
+    // 弹窗关闭事件处理（弹窗组件触发）
+    onPopupClose() {
+      console.log("弹窗已关闭");
+      // 这里可以添加弹窗关闭后的业务逻辑
+    },
+
     // 选择科目
-    selectSubject(subject) {
+    async selectSubject(subject) {
       console.log("选择了科目:", subject);
       this.currentSubject = subject;
+      uni.setStorageSync("subject", subject);
       this.closeSubjectPopup();
       // 这里可以添加切换科目后的逻辑
-      this.onSubjectChange(subject);
+      await this.onSubjectChange(subject);
     },
 
     // 科目切换后的处理
-    onSubjectChange(subject) {
+    async onSubjectChange(subject) {
       console.log("切换到科目:", subject);
       uni.showToast({
         title: `已切换到${subject.name}`,
         icon: "success",
       });
-      // 这里可以添加更多切换科目后的业务逻辑
-      // 比如重新加载数据等
+      // 重置分页状态并重新加载练习历史
+      this.practicePage = 1;
+      this.hasMorePracticeData = true;
+      await this.getPracticeHistory();
+    },
+
+    // 获取练习历史
+    async getPracticeHistory(isLoadMore = false) {
+      try {
+        this.apiLoadingStatus = true;
+        const params = {
+          page: this.practicePage,
+          page_size: this.practicePageSize,
+          subject_id: this.currentSubject ? this.currentSubject.id : null,
+        };
+
+        const res = await getPracticeLogApi(params);
+        if (res.code === 0) {
+          const newData = res.data.list || [];
+          if (isLoadMore) {
+            // 加载更多时追加数据
+            this.practiceHistoryList = this.practiceHistoryList.concat(newData);
+          } else {
+            // 首次加载或刷新时替换数据
+            this.practiceHistoryList = newData;
+          }
+
+          // 判断是否还有更多数据
+          this.hasMorePracticeData = newData.length >= this.practicePageSize;
+
+          // 停止加载动画
+          if (this.$refs.guipage) {
+            this.$refs.guipage.stopLoadmore();
+            if (!this.hasMorePracticeData) {
+              this.$refs.guipage.nomore();
+            }
+          }
+        } else {
+          console.error("获取练习历史失败:", res.msg);
+          // 使用模拟数据
+          if (isLoadMore) {
+            this.practiceHistoryList = this.practiceHistoryList.concat(this.getMockPracticeData());
+          } else {
+            this.practiceHistoryList = this.getMockPracticeData();
+          }
+        }
+      } catch (error) {
+        console.error("获取练习历史失败:", error);
+        // 使用模拟数据
+        if (isLoadMore) {
+          this.practiceHistoryList = this.practiceHistoryList.concat(this.getMockPracticeData());
+        } else {
+          this.practiceHistoryList = this.getMockPracticeData();
+        }
+      } finally {
+        this.apiLoadingStatus = false;
+      }
+    },
+
+    // 获取模拟练习数据
+    getMockPracticeData() {
+      return [
+        {
+          id: 1,
+          title: "集合的概念",
+          difficulty: 3,
+          question: "到定点(1, 0, 0)的距离小于或等于1的点的集合是()",
+          options: [
+            { label: "A", content: "{(x, y, z)|(x-1)²+y²+z²≤1}" },
+            { label: "B", content: "{(x, y, z)|(x-1)²+y²+z²=1}" },
+            { label: "C", content: "{(x-1)+y+z≤1}" },
+            { label: "D", content: "{(x, y, z)|x²+y²+z≤1}" },
+          ],
+          is_correct: true,
+          created_at: "2024-10-08",
+        },
+        {
+          id: 2,
+          title: "集合的概念",
+          difficulty: 3,
+          question: "到定点(1, 0, 0)的距离小于或等于1的点的集合是()",
+          options: [
+            { label: "A", content: "{(x, y, z)|(x-1)²+y²+z²≤1}" },
+            { label: "B", content: "{(x, y, z)|(x-1)²+y²+z²=1}" },
+            { label: "C", content: "{(x-1)+y+z≤1}" },
+            { label: "D", content: "{(x, y, z)|x²+y²+z≤1}" },
+          ],
+          is_correct: false,
+          created_at: "2024-10-08",
+        },
+      ];
+    },
+
+    // 获取选项数据
+    getOptions(item) {
+      if (item.options && Array.isArray(item.options)) {
+        return item.options;
+      }
+      // 默认选项
+      return [
+        { label: "A", content: "{(x, y, z)|(x-1)²+y²+z²≤1}" },
+        { label: "B", content: "{(x, y, z)|(x-1)²+y²+z²=1}" },
+        { label: "C", content: "{(x-1)+y+z≤1}" },
+        { label: "D", content: "{(x, y, z)|x²+y²+z≤1}" },
+      ];
+    },
+
+    // 加载更多练习历史
+    async loadMorePracticeHistory() {
+      if (!this.hasMorePracticeData) {
+        return;
+      }
+
+      this.practicePage++;
+      await this.getPracticeHistory(true);
+    },
+
+    // 格式化日期
+    formatDate(dateString) {
+      if (!dateString) return "";
+      const date = new Date(dateString);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
     },
   },
 };
@@ -243,16 +358,14 @@ page {
 .language-section {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.2);
+  background: #15abbe;
   border-radius: 40rpx;
-  padding: 16rpx 24rpx;
-  backdrop-filter: blur(10rpx);
-  border: 1rpx solid rgba(255, 255, 255, 0.3);
+  padding: 16rpx 36rpx;
 }
 
 .language-text {
   font-size: 28rpx;
-  color: #000;
+  color: #fff;
   font-weight: 500;
   margin-right: 12rpx;
 }
@@ -264,7 +377,7 @@ page {
 
 .dropdown-arrow {
   font-size: 20rpx;
-  color: #000;
+  color: #fff;
   transition: transform 0.3s ease;
 }
 
@@ -283,6 +396,8 @@ page {
   max-height: 80vh;
   width: 100%;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .subject-popup-header {
@@ -290,14 +405,13 @@ page {
   justify-content: space-between;
   align-items: center;
   padding: 30rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #ffffff;
+  color: #000;
 }
 
 .subject-popup-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #ffffff;
+  color: #000;
 }
 
 .subject-popup-close {
@@ -309,12 +423,19 @@ page {
   align-items: center;
   justify-content: center;
   font-size: 32rpx;
-  color: #ffffff;
+  color: #000;
 }
 
 .subject-list {
   max-height: 600rpx;
-  overflow-y: auto;
+  /* APP端滚动优化 */
+  -webkit-overflow-scrolling: touch;
+  /* 确保scroll-view有明确的高度 */
+  height: 600rpx;
+  /* 确保内容可以滚动 */
+  flex: 1;
+  /* 防止内容溢出 */
+  overflow: hidden;
 }
 
 .subject-item {
@@ -362,6 +483,123 @@ page {
   justify-content: center;
 }
 
+/* 练习历史样式 */
+.practice-history-container {
+  padding: 20rpx;
+}
+
+.practice-card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  padding-bottom: 20rpx;
+}
+
+.card-title-section {
+  flex: 1;
+}
+
+.card-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333333;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.card-difficulty {
+  font-size: 24rpx;
+  color: #666666;
+  display: block;
+}
+
+.card-date {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.card-question {
+  margin-bottom: 24rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.question-text {
+  font-size: 28rpx;
+  color: #333333;
+  line-height: 1.6;
+}
+
+.card-options {
+  margin-bottom: 24rpx;
+}
+
+.option-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12rpx;
+}
+
+.option-label {
+  font-size: 26rpx;
+  color: #333333;
+  font-weight: 500;
+  margin-right: 12rpx;
+  min-width: 40rpx;
+}
+
+.option-content {
+  font-size: 26rpx;
+  color: #666666;
+  flex: 1;
+  line-height: 1.5;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.status-text {
+  font-size: 24rpx;
+  font-weight: 500;
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+.status-text.correct {
+  color: #52c41a;
+  background: #f6ffed;
+  border: 1rpx solid #b7eb8f;
+}
+
+.status-text.incorrect {
+  color: #ff4d4f;
+  background: #fff2f0;
+  border: 1rpx solid #ffccc7;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 100rpx 0;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #999999;
+}
+
 /* 响应式调整 */
 @media (max-width: 750rpx) {
   .header-container {
@@ -377,6 +615,18 @@ page {
   }
 
   .language-text {
+    font-size: 26rpx;
+  }
+
+  .practice-card {
+    padding: 24rpx;
+  }
+
+  .card-title {
+    font-size: 30rpx;
+  }
+
+  .question-text {
     font-size: 26rpx;
   }
 }

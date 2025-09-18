@@ -45,7 +45,44 @@ export async function requestConfig(ins, options, successHandler = null, failHan
   // config detail, we do not use options directly => remove unneeded props
   if (type === "request") {
     let _data = options.data || options.params || {};
-    config["data"] = _data;
+    const platform = uni.getSystemInfoSync().platform;
+    const isLoginRequest = options.url.includes("login");
+    const isCaptchaRequest = options.url.includes("captcha");
+
+    // 根据平台和请求类型处理数据格式
+    if (platform === "ios" || platform === "android") {
+      // APP端特殊处理 - 所有POST请求都使用表单格式
+      if (options.method === "POST") {
+        // APP端所有POST请求都使用表单格式
+        if (typeof _data === "object" && _data !== null) {
+          const formData = Object.keys(_data)
+            .map((key) => encodeURIComponent(key) + "=" + encodeURIComponent(_data[key]))
+            .join("&");
+          config["data"] = formData;
+        } else {
+          config["data"] = _data;
+        }
+      } else {
+        // GET请求直接使用原数据
+        config["data"] = _data;
+      }
+    } else {
+      // 小程序端保持原有逻辑
+      if (isLoginRequest && options.method === "POST") {
+        // 登录请求使用表单格式
+        if (typeof _data === "object" && _data !== null) {
+          const formData = Object.keys(_data)
+            .map((key) => encodeURIComponent(key) + "=" + encodeURIComponent(_data[key]))
+            .join("&");
+          config["data"] = formData;
+        } else {
+          config["data"] = _data;
+        }
+      } else {
+        config["data"] = _data;
+      }
+    }
+
     config["method"] = options.method || "GET";
     config["dataType"] = options.dataType || "json";
     config["responseType"] = options.responseType || "text";

@@ -88,7 +88,6 @@ export default {
     async getCaptcha() {
       try {
         const res = await getCaptchaApi();
-        console.log("验证码API响应:", res); // 调试日志
         // 适配不同的响应格式
         if (res && (res.code === 0 || res.status === "success")) {
           // 尝试不同的数据结构
@@ -99,7 +98,6 @@ export default {
             this.captchaImage = imageData;
             this.form.captcha_id = keyData;
             this.form.captcha = "";
-            console.log("验证码设置成功:", this.captchaImage);
           } else {
             console.error("验证码数据格式错误:", res);
             uni.showToast({
@@ -166,8 +164,12 @@ export default {
       this.loading = true;
 
       try {
+        this.form.type = "student";
+
+        // 添加平台信息用于调试
+        const platform = uni.getSystemInfoSync().platform;
+
         const res = await loginApi(this.form);
-        console.log("登录API响应:", res); // 调试日志
 
         // 适配不同的响应格式
         if (res && (res.code === 0 || res.status === "success")) {
@@ -190,13 +192,14 @@ export default {
               icon: "success",
             });
 
-            // 跳转到首页
+            // 跳转到用户页面
             setTimeout(() => {
               uni.reLaunch({
-                url: "/pages/registration/index",
+                url: "/pages/user/index",
               });
             }, 1500);
           } else {
+            console.error("登录响应中未找到token:", res);
             uni.showToast({
               title: "登录失败，未获取到token",
               icon: "none",
@@ -204,6 +207,7 @@ export default {
             this.getCaptcha();
           }
         } else {
+          console.error("登录失败，响应码:", res?.code, "消息:", res?.msg || res?.message);
           uni.showToast({
             title: res.msg || res.message || "登录失败",
             icon: "none",
@@ -211,9 +215,20 @@ export default {
           this.getCaptcha();
         }
       } catch (error) {
-        console.error("登录失败:", error);
+        console.error("登录异常:", error);
+
+        // 更详细的错误信息
+        let errorMsg = "网络错误，请重试";
+        if (error.msg) {
+          errorMsg = error.msg;
+        } else if (error.message) {
+          errorMsg = error.message;
+        } else if (error.errMsg) {
+          errorMsg = error.errMsg;
+        }
+
         uni.showToast({
-          title: error.msg || "网络错误，请重试",
+          title: errorMsg,
           icon: "none",
         });
         // 重新获取验证码

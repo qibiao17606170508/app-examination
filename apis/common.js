@@ -29,3 +29,21 @@ export function getClassListApi(data) {
     data,
   });
 }
+
+// 获取用户信息
+export function getUserInfoApi(data) {
+  return request.request({
+    url: "student/user/getInfo",
+    method: "POST",
+    data,
+  });
+}
+
+// 获取练习历史
+export function getPracticeLogApi(data) {
+  return request.request({
+    url: "student/PracticeLog/list",
+    method: "POST",
+    data,
+  });
+}
