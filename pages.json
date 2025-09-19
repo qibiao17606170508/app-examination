@@ -38,8 +38,7 @@
     {
       "path": "pages/analysis/index",
       "style": {
-        "navigationBarTitleText": "智启AI",
-        "navigationStyle": "custom",
+        "navigationBarTitleText": "错题分析",
         "backgroundColor": "#FFF",
         "enablePullDownRefresh": false
       }
@@ -47,8 +46,7 @@
     {
       "path": "pages/practice/index",
       "style": {
-        "navigationBarTitleText": "智启AI",
-        "navigationStyle": "custom",
+        "navigationBarTitleText": "习题练习",
         "backgroundColor": "#FFF",
         "enablePullDownRefresh": false
       }

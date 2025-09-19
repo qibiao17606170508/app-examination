@@ -47,3 +47,66 @@ export function getPracticeLogApi(data) {
     data,
   });
 }
+
+// 获取练习统计
+export function getPracticeStatisticsApi(data) {
+  return request.request({
+    url: "student/PracticeStatistics/list",
+    method: "POST",
+    data,
+  });
+}
+
+// 获取错题分析
+export function getPracticeAnalyzeApi(data) {
+  return request.request({
+    url: "student/Analyze/getAnalyze",
+    method: "POST",
+    data,
+  });
+}
+
+// 设置错题分析
+export function setPracticeAnalyzeApi(data) {
+  return request.request({
+    url: "student/Analyze/setAnalyze",
+    method: "POST",
+    data,
+  });
+}
+
+// 获取练习列表（登记错题）
+export function getPracticeListApi(data) {
+  return request.request({
+    url: "student/Practice/list",
+    method: "POST",
+    data,
+  });
+}
+
+// 获取登记错题试卷列表
+export function getPapersApi(data) {
+  return request.request({
+    url: "student/RegisterTopic/getPapers",
+    method: "POST",
+    data,
+  });
+}
+
+// 获取登记错题题目列表
+export function getTopicsApi(data) {
+  return request.request({
+    url: "student/RegisterTopic/getTopics",
+    method: "POST",
+    data,
+  });
+}
+
+// 设置登记错题题目
+export function setTopicsApi(data) {
+  return request.request({
+    url: "student/RegisterTopic/setTopics",
+    method: "POST",
+    data,
+  });
+}

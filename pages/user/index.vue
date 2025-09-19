@@ -1,5 +1,5 @@
 <template>
-  <gui-page :apiLoadingStatus="apiLoadingStatus" :loadmore="true" @loadmorefun="loadMorePracticeHistory" ref="guipage" :customHeader="true">
+  <gui-page :isLoading="pageLoading" :refresh="true" @reload="reload" :apiLoadingStatus="apiLoadingStatus" :loadmore="true" @loadmorefun="loadMorePracticeHistory" ref="guipage" :customHeader="true" @scroll="bodyScroll">
     <template v-slot:gHeader>
       <view style="height: 44px; padding-top: 20rpx; padding-bottom: 20rpx" class="gui-flex gui-nowrap gui-rows gui-align-items-center gui-justify-content-between gui-space-between header-container">
         <!-- 欢迎语 -->
@@ -70,6 +70,8 @@ import { getSubjectListApi, getUserInfoApi, getPracticeLogApi } from "@/apis/com
 export default {
   data() {
     return {
+      // 页面加载状态
+      pageLoading: true,
       // 用于记录是否有 api 请求正在执行
       apiLoadingStatus: false,
       // 用户信息
@@ -190,7 +192,7 @@ export default {
     },
 
     // 获取练习历史
-    async getPracticeHistory(isLoadMore = false) {
+    async getPracticeHistory(isLoadMore = false, isReload = false) {
       try {
         this.apiLoadingStatus = true;
         const params = {
@@ -208,6 +210,11 @@ export default {
           } else {
             // 首次加载或刷新时替换数据
             this.practiceHistoryList = newData;
+            this.pageLoading = false;
+            // 下拉刷新
+            if (isReload && this.$refs.guipage) {
+              this.$refs.guipage.endReload();
+            }
           }
 
           // 判断是否还有更多数据
@@ -227,6 +234,11 @@ export default {
             this.practiceHistoryList = this.practiceHistoryList.concat(this.getMockPracticeData());
           } else {
             this.practiceHistoryList = this.getMockPracticeData();
+            this.pageLoading = false;
+            // 下拉刷新
+            if (isReload && this.$refs.guipage) {
+              this.$refs.guipage.endReload();
+            }
           }
         }
       } catch (error) {
@@ -236,6 +248,11 @@ export default {
           this.practiceHistoryList = this.practiceHistoryList.concat(this.getMockPracticeData());
         } else {
           this.practiceHistoryList = this.getMockPracticeData();
+          this.pageLoading = false;
+          // 下拉刷新
+          if (isReload && this.$refs.guipage) {
+            this.$refs.guipage.endReload();
+          }
         }
       } finally {
         this.apiLoadingStatus = false;
@@ -290,6 +307,13 @@ export default {
       ];
     },
 
+    // 下拉刷新
+    reload() {
+      this.practicePage = 1;
+      this.hasMorePracticeData = true;
+      this.getPracticeHistory(false, true);
+    },
+
     // 加载更多练习历史
     async loadMorePracticeHistory() {
       if (!this.hasMorePracticeData) {
@@ -298,6 +322,11 @@ export default {
 
       this.practicePage++;
       await this.getPracticeHistory(true);
+    },
+
+    // 滚动区域滚动事件
+    bodyScroll(e) {
+      console.log("滚动位置:", e.detail.scrollTop);
     },
 
     // 格式化日期
