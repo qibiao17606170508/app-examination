@@ -1,5 +1,5 @@
 <template>
-  <gui-page :isLoading="pageLoading" :refresh="true" @reload="reload" :apiLoadingStatus="apiLoadingStatus" ref="guipage" @scroll="bodyScroll">
+  <gui-page :refresh="true" @reload="reload" :apiLoadingStatus="apiLoadingStatus" ref="guipage" @scroll="bodyScroll">
     <template v-slot:gBody>
       <!-- 无数据状态 -->
       <view v-if="noData" class="no-data">
@@ -44,8 +44,6 @@ import { getPracticeAnalyzeApi, setPracticeAnalyzeApi, getUserInfoApi } from "@/
 export default {
   data() {
     return {
-      // 页面加载状态
-      pageLoading: true,
       // 用于记录是否有 api 请求正在执行
       apiLoadingStatus: false,
       // 错题分析数据
@@ -103,7 +101,6 @@ export default {
         if (res.code === 0) {
           this.analyzeList = res.data.list || [];
           this.noData = this.analyzeList.length === 0;
-          this.pageLoading = false;
 
           // 下拉刷新
           if (isReload && this.$refs.guipage) {
@@ -221,8 +218,8 @@ page {
 }
 
 .analyze-icon {
-  width: 480rpx;
-  height: 320rpx;
+  width: 300rpx;
+  height: 300rpx;
 }
 
 .no-data-text {

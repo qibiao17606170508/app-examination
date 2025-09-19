@@ -52,6 +52,14 @@
       }
     },
     {
+      "path": "pages/practice/exam",
+      "style": {
+        "navigationBarTitleText": "答题",
+        "backgroundColor": "#FFF",
+        "enablePullDownRefresh": false
+      }
+    },
+    {
       "path": "pages/user/index",
       "style": {
         "navigationBarTitleText": "智启AI",

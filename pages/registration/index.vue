@@ -1,5 +1,5 @@
 <template>
-  <gui-page :isLoading="pageLoading" :refresh="true" @reload="reload" :apiLoadingStatus="apiLoadingStatus" :loadmore="true" @loadmorefun="loadMorePractice" ref="guipage" :customHeader="false" @scroll="bodyScroll">
+  <gui-page :refresh="true" @reload="reload" :loadMoreText="loadMoreText" :apiLoadingStatus="apiLoadingStatus" :loadmore="true" @loadmorefun="loadMorePractice" ref="guipage" :customHeader="false" @scroll="bodyScroll">
     <template v-slot:gBody>
       <!-- 练习列表 -->
       <view class="practice-container">
@@ -31,7 +31,9 @@
 
         <!-- 空状态 -->
         <view v-if="practiceList.length === 0 && !apiLoadingStatus" class="empty-state">
-          <text class="empty-text">暂无练习数据</text>
+          <view class="empty-image">
+            <image src="/static/nodata.png" class="empty-icon" mode="aspectFit" />
+          </view>
         </view>
       </view>
 
@@ -89,8 +91,6 @@ import { getPapersApi, getTopicsApi, setTopicsApi } from "@/apis/common.js";
 export default {
   data() {
     return {
-      // 页面加载状态
-      pageLoading: true,
       // 用于记录是否有 api 请求正在执行
       apiLoadingStatus: false,
       // 试卷列表数据
@@ -105,6 +105,7 @@ export default {
       selectedTopics: [],
       currentPapersId: null,
       topicLoading: false,
+      loadMoreText: ["", "数据加载中", "已加载全部数据", "暂无数据"],
     };
   },
   onLoad: async function () {
@@ -137,13 +138,15 @@ export default {
         const res = await getPapersApi(params);
         if (res.code === 0) {
           const newData = res.data.list || [];
+          if (res.data.total == 0) {
+            this.loadMoreText[2] = "";
+          }
           if (isLoadMore) {
             // 加载更多时追加数据
             this.practiceList = this.practiceList.concat(newData);
           } else {
             // 首次加载或刷新时替换数据
             this.practiceList = newData;
-            this.pageLoading = false;
             // 下拉刷新
             if (isReload && this.$refs.guipage) {
               this.$refs.guipage.endReload();
@@ -422,6 +425,17 @@ page {
 .empty-state {
   text-align: center;
   padding: 100rpx 0;
+}
+
+.empty-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.empty-icon {
+  width: 400rpx;
 }
 
 .empty-text {

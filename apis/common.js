@@ -110,3 +110,21 @@ export function setTopicsApi(data) {
     data,
   });
 }
+
+// 获取随机练习题目
+export function getPracticeListRandomApi(data) {
+  return request.request({
+    url: "student/Practice/list",
+    method: "POST",
+    data,
+  });
+}
+
+// 提交练习答案
+export function setPracticeAddApi(data) {
+  return request.request({
+    url: "student/Practice/add",
+    method: "POST",
+    data,
+  });
+}

@@ -1,5 +1,5 @@
 <template>
-  <gui-page :isLoading="pageLoading" :refresh="true" @reload="reload" :apiLoadingStatus="apiLoadingStatus" :loadmore="true" @loadmorefun="loadMorePractice" ref="guipage" :customHeader="false" @scroll="bodyScroll">
+  <gui-page :refresh="true" @reload="reload" :loadMoreText="loadMoreText" :apiLoadingStatus="apiLoadingStatus" :loadmore="true" @loadmorefun="loadMorePractice" ref="guipage" :customHeader="false" @scroll="bodyScroll">
     <template v-slot:gBody>
       <!-- 练习统计列表 -->
       <view class="practice-container">
@@ -11,7 +11,6 @@
               <text class="card-sub-title">{{ item.name }}</text>
             </view>
           </view>
-
           <!-- 分割线 -->
           <!-- <view class="card-divider"></view> -->
 
@@ -24,19 +23,19 @@
             </view>
 
             <!-- 难度1 -->
-            <view class="stat-item">
+            <view class="stat-item" @click="goToPractice(item, 1)">
               <text class="stat-number">{{ item.difficulty1_percentage || 0 }}</text>
               <text class="stat-label">难度 1</text>
             </view>
 
             <!-- 难度2 -->
-            <view class="stat-item">
+            <view class="stat-item" @click="goToPractice(item, 2)">
               <text class="stat-number">{{ item.difficulty2_percentage || 0 }}</text>
               <text class="stat-label">难度 2</text>
             </view>
 
             <!-- 难度3 -->
-            <view class="stat-item">
+            <view class="stat-item" @click="goToPractice(item, 3)">
               <text class="stat-number">{{ item.difficulty3_percentage || 0 }}</text>
               <text class="stat-label">难度 3</text>
             </view>
@@ -45,20 +44,21 @@
 
         <!-- 空状态 -->
         <view v-if="practiceList.length === 0 && !apiLoadingStatus" class="empty-state">
-          <text class="empty-text">暂无练习数据</text>
+          <!-- 空状态图片 -->
+          <view class="empty-image">
+            <image src="/static/nodata.png" class="empty-icon" mode="aspectFit" />
+          </view>
         </view>
       </view>
     </template>
   </gui-page>
 </template>
 <script>
-import { getPracticeStatisticsApi } from "@/apis/common.js";
+import { getPracticeStatisticsApi, getPracticeListApi } from "@/apis/common.js";
 
 export default {
   data() {
     return {
-      // 页面加载状态
-      pageLoading: true,
       // 用于记录是否有 api 请求正在执行
       apiLoadingStatus: false,
       // 练习统计数据
@@ -68,6 +68,7 @@ export default {
       hasMorePracticeData: true,
       // 当前科目ID
       currentSubjectId: null,
+      loadMoreText: ["", "数据加载中", "已加载全部数据", "暂无数据"],
     };
   },
   onLoad: async function () {
@@ -100,13 +101,15 @@ export default {
         const res = await getPracticeStatisticsApi(params);
         if (res.code === 0) {
           const newData = res.data.list || [];
+          if (res.data.total == 0) {
+            this.loadMoreText[2] = "";
+          }
           if (isLoadMore) {
             // 加载更多时追加数据
             this.practiceList = this.practiceList.concat(newData);
           } else {
             // 首次加载或刷新时替换数据
             this.practiceList = newData;
-            this.pageLoading = false;
             // 下拉刷新
             if (isReload && this.$refs.guipage) {
               this.$refs.guipage.endReload();
@@ -161,6 +164,35 @@ export default {
     // 滚动区域滚动事件
     bodyScroll(e) {
       console.log("滚动位置:", e.detail.scrollTop);
+    },
+
+    // 跳转到答题页面
+    async goToPractice(item, difficulty) {
+      const params = {
+        subject_id: this.currentSubjectId,
+        knowledge_id: item.id,
+        difficulty: difficulty,
+        name: item.name,
+        level1_name: item.level1_name,
+        level2_name: item.level2_name,
+      };
+      // 先查有没有题目再跳转
+      const res = await getPracticeListApi(params);
+      if (res.code === 0) {
+        console.log("res.data.total", res.data.total);
+        if (res.data.total === 0) {
+          uni.showToast({
+            title: "该知识点没有题目",
+            icon: "none",
+          });
+          return;
+        }
+      }
+      // 将参数编码后传递到答题页面
+      const queryString = encodeURIComponent(JSON.stringify(params));
+      uni.navigateTo({
+        url: `/pages/practice/exam?params=${queryString}`,
+      });
     },
   },
 };
@@ -241,6 +273,13 @@ page {
   flex-direction: column;
   align-items: center;
   flex: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stat-item:active {
+  transform: scale(0.95);
+  opacity: 0.8;
 }
 
 .stat-number {
@@ -259,6 +298,17 @@ page {
 .empty-state {
   text-align: center;
   padding: 100rpx 0;
+}
+
+.empty-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.empty-icon {
+  width: 400rpx;
 }
 
 .empty-text {

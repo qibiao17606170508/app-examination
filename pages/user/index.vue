@@ -1,19 +1,25 @@
 <template>
-  <gui-page :isLoading="pageLoading" :refresh="true" @reload="reload" :apiLoadingStatus="apiLoadingStatus" :loadmore="true" @loadmorefun="loadMorePracticeHistory" ref="guipage" :customHeader="true" @scroll="bodyScroll">
+  <gui-page :refresh="true" @reload="reload" :loadMoreText="loadMoreText" :apiLoadingStatus="apiLoadingStatus" :loadmore="true" @loadmorefun="loadMorePracticeHistory" ref="guipage" :customHeader="true" @scroll="bodyScroll">
     <template v-slot:gHeader>
       <view style="height: 44px; padding-top: 20rpx; padding-bottom: 20rpx" class="gui-flex gui-nowrap gui-rows gui-align-items-center gui-justify-content-between gui-space-between header-container">
         <!-- 欢迎语 -->
         <view class="welcome-section">
-          <text class="welcome-text">欢迎您</text>
-          <text class="username-text">{{ userInfo.nickname || userInfo.username || "..." }}</text>
-        </view>
+          <text class="welcome-text">
+            欢迎您
+            <text class="username-text">{{ userInfo.nickname || userInfo.username || "..." }}</text>
+          </text>
 
-        <!-- 科目选择器 -->
-        <view class="language-section" @click="showLanguageSelector">
-          <text class="language-text">{{ currentSubject ? currentSubject.name : "未选择" }}</text>
-          <view class="language-dropdown">
-            <text class="dropdown-arrow grace-iconfont">&#xe603;</text>
+          <!-- 科目选择器 -->
+          <view class="language-section1" @click="showLanguageSelector">
+            <text class="language-text1">{{ currentSubject ? currentSubject.name : "未选择" }}</text>
+            <view class="language-dropdown">
+              <text class="grace-iconfont dropdown-arrow1">&#xe603;</text>
+            </view>
           </view>
+        </view>
+        <!-- 科目选择器 -->
+        <view class="language-section" @click="logout">
+          <text class="language-text">退出登录</text>
         </view>
       </view>
     </template>
@@ -43,6 +49,13 @@
             </text>
           </view>
         </view>
+
+        <!-- 空状态 -->
+        <view v-if="practiceHistoryList.length === 0 && !apiLoadingStatus" class="empty-state">
+          <view class="empty-image">
+            <image src="/static/nodata.png" class="empty-icon" mode="aspectFit" />
+          </view>
+        </view>
       </view>
 
       <!-- 科目选择弹窗 -->
@@ -70,8 +83,6 @@ import { getSubjectListApi, getUserInfoApi, getPracticeLogApi } from "@/apis/com
 export default {
   data() {
     return {
-      // 页面加载状态
-      pageLoading: true,
       // 用于记录是否有 api 请求正在执行
       apiLoadingStatus: false,
       // 用户信息
@@ -87,6 +98,7 @@ export default {
       practicePage: 1,
       practicePageSize: 10,
       hasMorePracticeData: true,
+      loadMoreText: ["", "数据加载中", "已加载全部数据", "暂无数据"],
     };
   },
   onLoad: async function () {
@@ -204,13 +216,15 @@ export default {
         const res = await getPracticeLogApi(params);
         if (res.code === 0) {
           const newData = res.data.list || [];
+          if (res.data.total == 0) {
+            this.loadMoreText[2] = "";
+          }
           if (isLoadMore) {
             // 加载更多时追加数据
             this.practiceHistoryList = this.practiceHistoryList.concat(newData);
           } else {
             // 首次加载或刷新时替换数据
             this.practiceHistoryList = newData;
-            this.pageLoading = false;
             // 下拉刷新
             if (isReload && this.$refs.guipage) {
               this.$refs.guipage.endReload();
@@ -234,7 +248,6 @@ export default {
             this.practiceHistoryList = this.practiceHistoryList.concat(this.getMockPracticeData());
           } else {
             this.practiceHistoryList = this.getMockPracticeData();
-            this.pageLoading = false;
             // 下拉刷新
             if (isReload && this.$refs.guipage) {
               this.$refs.guipage.endReload();
@@ -248,7 +261,6 @@ export default {
           this.practiceHistoryList = this.practiceHistoryList.concat(this.getMockPracticeData());
         } else {
           this.practiceHistoryList = this.getMockPracticeData();
-          this.pageLoading = false;
           // 下拉刷新
           if (isReload && this.$refs.guipage) {
             this.$refs.guipage.endReload();
@@ -338,6 +350,23 @@ export default {
       const day = String(date.getDate()).padStart(2, "0");
       return `${year}-${month}-${day}`;
     },
+
+    // 退出登录
+    logout() {
+      // 二次确认
+      uni.showModal({
+        title: "提示",
+        content: "确定退出登录吗",
+        success: (res) => {
+          if (res.confirm) {
+            uni.clearStorageSync();
+            uni.reLaunch({
+              url: "/pages/login/login",
+            });
+          }
+        },
+      });
+    },
   },
 };
 </script>
@@ -391,10 +420,25 @@ page {
   border-radius: 40rpx;
   padding: 16rpx 36rpx;
 }
-
+/* 科目选择器样式 */
+.language-section1 {
+  display: flex;
+  align-items: center;
+  border-radius: 12rpx;
+  border: 1rpx solid #15abbe;
+  margin-top: 10rpx;
+  padding: 8rpx 16rpx;
+}
 .language-text {
   font-size: 28rpx;
   color: #fff;
+  font-weight: 500;
+  margin-right: 12rpx;
+}
+
+.language-text1 {
+  font-size: 28rpx;
+  color: #15abbe;
   font-weight: 500;
   margin-right: 12rpx;
 }
@@ -410,6 +454,11 @@ page {
   transition: transform 0.3s ease;
 }
 
+.dropdown-arrow1 {
+  font-size: 20rpx;
+  color: #15abbe;
+  transition: transform 0.3s ease;
+}
 .grace-iconfont {
   font-family: "graceIconfontBase64" !important;
   font-style: normal;
@@ -622,6 +671,17 @@ page {
 .empty-state {
   text-align: center;
   padding: 100rpx 0;
+}
+
+.empty-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.empty-icon {
+  width: 400rpx;
 }
 
 .empty-text {

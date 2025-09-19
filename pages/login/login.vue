@@ -1,6 +1,8 @@
 <template>
   <gui-page>
     <template v-slot:gBody>
+      <!-- 页面配置 -->
+      <page-meta :page-style="pageStyle" />
       <view class="login-container">
         <!-- 品牌信息 -->
         <view class="brand-section">
@@ -11,20 +13,20 @@
           <view class="login-form">
             <!-- 用户名输入框 -->
             <view class="form-item">
-              <view class="input-wrapper">
+              <view class="input-wrapper" @click="scrollToUsername">
                 <view class="input-icon">
                   <view class="icon-user"></view>
                 </view>
-                <input class="input-field" v-model="form.username" placeholder="请输入用户名" :maxlength="20" />
+                <input class="input-field" v-model="form.username" placeholder="请输入用户名" :maxlength="20" @focus="scrollToUsername" :adjust-position="true" :cursor-spacing="150" :hold-keyboard="true" :confirm-type="'next'" />
               </view>
             </view>
             <!-- 密码输入框 -->
             <view class="form-item">
-              <view class="input-wrapper">
+              <view class="input-wrapper" @click="scrollToPassword">
                 <view class="input-icon">
                   <view class="icon-lock"></view>
                 </view>
-                <input class="input-field" v-model="form.password" placeholder="请输入密码" :password="!showPassword" :maxlength="20" />
+                <input class="input-field" v-model="form.password" placeholder="请输入密码" :password="!showPassword" :maxlength="20" @focus="scrollToPassword" :adjust-position="true" :cursor-spacing="150" :hold-keyboard="true" :confirm-type="'next'" />
                 <view class="password-toggle" @click="togglePassword">
                   <view class="icon-eye" :class="{ 'icon-eye-off': showPassword }"></view>
                 </view>
@@ -33,11 +35,11 @@
             <!-- 验证码输入框 -->
             <view class="form-item">
               <view class="captcha-wrapper">
-                <view class="input-wrapper captcha-input">
+                <view class="input-wrapper captcha-input" @click="scrollToCaptcha">
                   <view class="input-icon">
                     <view class="icon-shield"></view>
                   </view>
-                  <input class="input-field" v-model="form.captcha" placeholder="请输入验证码" :maxlength="6" />
+                  <input class="input-field" v-model="form.captcha" placeholder="请输入验证码" :maxlength="6" @focus="scrollToCaptcha" :adjust-position="true" :cursor-spacing="150" :hold-keyboard="true" :confirm-type="'done'" />
                 </view>
                 <image v-if="captchaImage" class="captcha-image" :src="captchaImage" @click="getCaptcha" />
               </view>
@@ -67,6 +69,8 @@ export default {
       loading: false,
       showPassword: false,
       captchaImage: "",
+      keyboardHeight: 0,
+      pageStyle: "overflow: hidden;",
       form: {
         username: "",
         password: "",
@@ -81,6 +85,20 @@ export default {
     this.getCaptcha();
     // 清除会话存储
     uni.clearStorageSync();
+  },
+
+  onShow() {
+    // 监听键盘弹出事件
+    uni.onKeyboardHeightChange &&
+      uni.onKeyboardHeightChange((res) => {
+        this.keyboardHeight = res.height;
+        if (res.height > 0) {
+          // 键盘弹出时，延迟滚动到当前聚焦的输入框
+          setTimeout(() => {
+            this.scrollToCurrentInput();
+          }, 200);
+        }
+      });
   },
 
   methods: {
@@ -251,26 +269,109 @@ export default {
         url: "/pages/register/register?type=student",
       });
     },
+
+    // 滚动到用户名输入框
+    scrollToUsername() {
+      this.scrollToInput(".form-item:first-child .input-wrapper");
+    },
+
+    // 滚动到密码输入框
+    scrollToPassword() {
+      this.scrollToInput(".form-item:nth-child(2) .input-wrapper");
+    },
+
+    // 滚动到验证码输入框
+    scrollToCaptcha() {
+      this.scrollToInput(".captcha-wrapper");
+    },
+
+    // 滚动到当前聚焦的输入框
+    scrollToCurrentInput() {
+      // 根据表单状态判断当前应该聚焦的输入框
+      // 优先检查验证码，因为它在最下面
+      if (this.form.captcha) {
+        this.scrollToCaptcha();
+      } else if (this.form.password) {
+        this.scrollToPassword();
+      } else if (this.form.username) {
+        this.scrollToUsername();
+      } else {
+        // 如果都没有值，默认滚动到验证码（最容易被遮挡的）
+        this.scrollToCaptcha();
+      }
+    },
+
+    // 通用滚动到输入框方法
+    scrollToInput(selector) {
+      // 延迟执行，确保DOM已更新
+      setTimeout(() => {
+        // 使用uni.createSelectorQuery获取输入框位置
+        const query = uni.createSelectorQuery().in(this);
+        query
+          .select(selector)
+          .boundingClientRect((rect) => {
+            if (rect) {
+              // 获取系统信息
+              const systemInfo = uni.getSystemInfoSync();
+              const windowHeight = systemInfo.windowHeight;
+              const keyboardHeight = this.keyboardHeight || 300;
+              const availableHeight = windowHeight - keyboardHeight;
+
+              // 如果输入框被键盘遮挡
+              if (rect.bottom > availableHeight) {
+                // 计算需要滚动的距离，确保输入框在可视区域内
+                const scrollTop = rect.top - (availableHeight - rect.height) / 2;
+
+                uni.pageScrollTo({
+                  scrollTop: Math.max(0, scrollTop),
+                  duration: 300,
+                });
+              }
+            }
+          })
+          .exec();
+      }, 100);
+    },
   },
 };
 </script>
 <style scoped lang="scss">
 .login-container {
-  max-height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 40rpx;
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
+  padding-bottom: 100rpx; /* 减少底部空间 */
+
+  /* 隐藏滚动条 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+
+  /* 确保内容在视口内居中 */
+  box-sizing: border-box;
+
+  /* 键盘弹出时的样式 */
+  &.keyboard-active {
+    padding-bottom: 300rpx;
+    justify-content: flex-start;
+    padding-top: 100rpx;
+  }
 }
 
 .brand-section {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 160rpx;
+  margin-top: 80rpx;
+  margin-bottom: 40rpx;
 }
 
 .login-card {
@@ -470,12 +571,34 @@ export default {
 
 /* 适配不同屏幕尺寸 */
 @media (max-width: 375px) {
+  .login-container {
+    padding: 20rpx;
+    padding-bottom: 150rpx; /* 减少底部空间 */
+  }
+
+  .brand-section {
+    margin-top: 40rpx;
+    margin-bottom: 20rpx;
+  }
+
   .login-card {
     padding: 40rpx 30rpx;
   }
 
   .login-header .login-title {
     font-size: 42rpx;
+  }
+}
+
+/* 键盘弹出时的样式调整 */
+@media screen and (max-height: 600px) {
+  .login-container {
+    padding-bottom: 200rpx; /* 减少底部空间 */
+  }
+
+  .brand-section {
+    margin-top: 20rpx;
+    margin-bottom: 20rpx;
   }
 }
 </style>
